@@ -1,0 +1,45 @@
+.feed-container {
+  display: flex;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.feed-main {
+  flex: 1;
+  max-width: 600px;
+}
+
+.feed-sidebar {
+  width: 300px;
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.empty-feed {
+  text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .feed-container {
+    flex-direction: column;
+  }
+
+  .feed-sidebar {
+    width: 100%;
+    position: static;
+  }
+}
+

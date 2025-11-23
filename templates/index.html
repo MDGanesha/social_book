@@ -1,0 +1,383 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Your existing static styles (kept so theme assets still apply) -->
+  <link rel="stylesheet" href="{% static 'assets/css/icons.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/uikit.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/tailwind.css' %}">
+
+  <!-- Font Awesome (optional) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  <style>
+    /* small, focused adjustments to complement bootstrap */
+    .profile-avatar { width:42px; height:42px; object-fit:cover; border-radius:50%; }
+    .post-img { width:100%; height:auto; max-height:520px; object-fit:cover; }
+    .comment-box { background:#f8f9fa; border-radius:8px; padding:10px; }
+    .notif-list { max-height:420px; overflow:auto; min-width:300px; }
+    .suggestion-avatar { width:44px; height:44px; object-fit:cover; border-radius:50%; }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-white bg-white shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/">Social Book</a>
+
+    <!-- Search -->
+    <form class="d-flex ms-3 me-auto" action="/search" method="POST" role="search">
+      {% csrf_token %}
+      <input class="form-control me-2" name="username" type="search" placeholder="Search username..." aria-label="Search">
+      <button class="btn btn-outline-secondary" type="submit"><i class="fa fa-search"></i></button>
+    </form>
+
+    <div class="d-flex align-items-center">
+      <!-- Upload trigger -->
+      <div class="me-2">
+        <button id="upload-btn" class="btn btn-pink btn-sm btn-primary">
+          <i class="bi bi-plus-circle me-1"></i> Upload
+        </button>
+      </div>
+
+      <!-- Notification -->
+      <div class="dropdown me-3">
+        <button id="notif-toggle" class="btn btn-outline-secondary position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fa fa-bell"></i>
+          <span id="notif-count" class="badge bg-danger rounded-pill ms-1">{{ unread_notification_count|default:0 }}</span>
+        </button>
+        <ul id="notif-dropdown" class="dropdown-menu dropdown-menu-end p-2 notif-list">
+          <div class="d-flex justify-content-between align-items-center px-2 pb-2">
+            <strong>Notifications</strong>
+            <button id="mark-all-read" class="btn btn-sm btn-link">Mark all read</button>
+          </div>
+          <hr class="my-1">
+          <div id="notif-items" class="list-group list-group-flush px-1"></div>
+          <div id="notif-empty" class="text-muted small text-center p-2" style="display:none;">No notifications</div>
+          <div id="notif-loading" class="text-muted small text-center p-2" style="display:none;">Loading…</div>
+        </ul>
+      </div>
+
+      <!-- Profile dropdown -->
+      <div class="dropdown">
+        <a class="d-flex align-items-center" href="#" data-bs-toggle="dropdown">
+          <img src="{{ user_profile.profileimg.url }}" alt="me" class="profile-avatar border">
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="/profile/{{ request.user.username }}"><i class="fa fa-user me-2"></i> My Profile</a></li>
+          <li><a class="dropdown-item" href="/settings"><i class="fa fa-cog me-2"></i> Account settings</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="/logout"><i class="fa fa-sign-out me-2"></i> Log out</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hidden upload dropdown content (we'll toggle it with JS) -->
+<div id="upload-dropdown" class="position-fixed" style="display:none; right:24px; top:72px; z-index:1200; max-width:360px;">
+  <div class="card shadow">
+    <div class="card-body">
+      <h6 class="card-title mb-3">Upload Picture</h6>
+      <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <input class="form-control" type="file" id="image_upload" name="image_upload" accept="image/*">
+        </div>
+        <div class="mb-3">
+          <textarea class="form-control" id="caption" name="caption" rows="3" placeholder="Write a caption (optional)"></textarea>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+        </div>
+      </form>
+      <div class="small text-muted mt-2">Max size 999MB</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main container -->
+<div class="container my-4">
+  <!-- flash messages -->
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} small py-2" role="alert">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row gy-4">
+    <!-- feed (left) -->
+    <div class="col-lg-8">
+      {% for post in posts reversed %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <a href="/profile/{{ post.user }}"><img src="{% static 'assets/images/avatars/avatar-1.jpg' %}" alt="avatar" class="suggestion-avatar me-2"></a>
+            <div>
+              <a class="text-decoration-none fw-semibold" href="/profile/{{ post.user }}">@{{ post.user }}</a>
+              <div class="small text-muted">Posted</div>
+            </div>
+          </div>
+          <div class="dropdown">
+            <a href="#" data-bs-toggle="dropdown" class="text-muted text-decoration-none"><i class="fa fa-ellipsis-h"></i></a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              {% if request.user.username == post.user or request.user.is_superuser %}
+              <li>
+                <form action="{% url 'delete-post' post.id %}" method="POST" class="px-3 py-1">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this post?');">Delete Post</button>
+                </form>
+              </li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <a href="{{ post.image.url }}" target="_blank">
+            <img src="{{ post.image.url }}" alt="post image" class="post-img w-100">
+          </a>
+
+          <div class="p-3">
+            <!-- like & summary -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <a href="/like-post?post_id={{ post.id }}" class="btn btn-sm btn-outline-secondary me-2">
+                  <i class="fa fa-thumbs-up me-1"></i> Like
+                </a>
+                <span class="small text-muted">
+                  {% if post.no_of_likes == 0 %}
+                    No likes
+                  {% elif post.no_of_likes == 1 %}
+                    Liked by 1 person
+                  {% else %}
+                    Liked by {{ post.no_of_likes }} people
+                  {% endif %}
+                </span>
+              </div>
+              <div class="small text-muted"> <!-- placeholder for possible timestamp --> </div>
+            </div>
+
+            <!-- caption -->
+            <p><strong><a href="/profile/{{ post.user }}" class="text-decoration-none">@{{ post.user }}</a></strong> {{ post.caption }}</p>
+
+            <!-- comments list -->
+            <div class="mt-2">
+              <div class="comment-box">
+                {% for c in comments %}
+                  {% if c.post.id == post.id %}
+                    <div class="mb-2">
+                      <strong class="me-2">{{ c.user }}</strong>
+                      <span class="small text-muted">{{ c.body }}</span>
+                      <div class="small text-muted mt-1">{{ c.timestamp|date:"M d, Y H:i" }}</div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+                {% if not comments %}
+                  <div class="text-muted small">No comments yet</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- add comment -->
+            <form action="/add-comment/" method="POST" class="mt-3">
+              {% csrf_token %}
+              <input type="hidden" name="post_id" value="{{ post.id }}">
+              <div class="input-group">
+                <input name="body" type="text" class="form-control form-control-sm" placeholder="Add a comment..." required>
+                <button class="btn btn-success btn-sm" type="submit">Comment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- right sidebar -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <strong>Users you may follow</strong>
+        </div>
+        <div class="card-body p-2">
+          {% for suggestion in suggestions_username_profile_list %}
+          <div class="d-flex align-items-center justify-content-between py-2">
+            <div class="d-flex align-items-center">
+              <a href="/profile/{{ suggestion.user }}"><img src="{{ suggestion.profileimg.url }}" class="suggestion-avatar me-2" alt=""></a>
+              <div>
+                <a href="/profile/{{ suggestion.user }}" class="text-decoration-none fw-semibold">{{ suggestion.user }}</a>
+                <div class="small text-muted">{{ suggestion.bio|default:'' }}</div>
+              </div>
+            </div>
+            <a href="/profile/{{ suggestion.user }}" class="btn btn-outline-primary btn-sm">View</a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- small info card -->
+      <div class="card shadow-sm">
+        <div class="card-body small text-muted">
+          Built with Django · Bootstrap
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap & dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- optional ionicons -->
+<script type="module" src="https://unpkg.com/ionicons@5.2.3/dist/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@5.2.3/dist/ionicons.js"></script>
+
+<!-- Your original JS dependencies (kept) -->
+<script src="{% static 'assets/js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'assets/js/uikit.js' %}"></script>
+<script src="{% static 'assets/js/simplebar.js' %}"></script>
+<script src="{% static 'assets/js/custom.js' %}"></script>
+
+<script>
+  /* CSRF helper */
+  function getCSRF() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    for (const c of cookies) {
+      if (c.startsWith(name + '=')) return decodeURIComponent(c.substring(name.length + 1));
+    }
+    return '';
+  }
+
+  /* Notifications: fetch + render */
+  function fetchNotifications() {
+    const list = document.getElementById('notif-items');
+    const empty = document.getElementById('notif-empty');
+    const loading = document.getElementById('notif-loading');
+    const countEl = document.getElementById('notif-count');
+
+    if (!list || !countEl) return;
+    list.innerHTML = '';
+    empty.style.display = 'none';
+    loading.style.display = 'block';
+
+    fetch('/notifications/')
+      .then(r => {
+        if (!r.ok) throw new Error('Network response not ok');
+        return r.json();
+      })
+      .then(data => {
+        loading.style.display = 'none';
+        const notifs = data.notifications || [];
+        const unread = notifs.filter(n => !n.read).length;
+        countEl.innerText = unread;
+
+        if (notifs.length === 0) {
+          empty.style.display = 'block';
+          return;
+        }
+
+        notifs.forEach(n => {
+          const a = document.createElement('a');
+          a.className = 'list-group-item list-group-item-action';
+          a.href = '#';
+          a.style.cursor = 'pointer';
+
+          const title = document.createElement('div');
+          title.className = 'fw-semibold';
+          title.textContent = `${n.actor} ${n.verb}`;
+
+          const time = document.createElement('div');
+          time.className = 'small text-muted';
+          time.textContent = n.timestamp;
+
+          a.appendChild(title);
+          a.appendChild(time);
+
+          a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            fetch(`/notifications/mark-read/${n.id}/`, {
+              method: 'POST',
+              headers: {'X-CSRFToken': getCSRF()}
+            }).finally(() => {
+              if (n.url) window.location.href = n.url;
+              else fetchNotifications();
+            });
+          });
+
+          list.appendChild(a);
+        });
+      })
+      .catch(err => {
+        loading.style.display = 'none';
+        console.error('Failed to fetch notifications', err);
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // show notifications on load
+    fetchNotifications();
+
+    // mark all read
+    const markAllBtn = document.getElementById('mark-all-read');
+    if (markAllBtn) {
+      markAllBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fetch('/notifications/mark-all-read/', {
+          method: 'POST',
+          headers: {'X-CSRFToken': getCSRF()}
+        }).then(() => fetchNotifications());
+      });
+    }
+
+    // upload dropdown toggle + auto-submit on file select
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadDropdown = document.getElementById('upload-dropdown');
+    const fileInput = document.getElementById('image_upload');
+    const uploadForm = document.getElementById('upload-form');
+
+    if (uploadBtn && uploadDropdown) {
+      uploadBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // toggle visibility
+        uploadDropdown.style.display = (uploadDropdown.style.display === 'block') ? 'none' : 'block';
+      });
+
+      // close when clicking outside
+      document.addEventListener('click', (ev) => {
+        if (!uploadDropdown.contains(ev.target) && !uploadBtn.contains(ev.target)) {
+          uploadDropdown.style.display = 'none';
+        }
+      });
+    }
+
+    if (fileInput && uploadForm) {
+      fileInput.addEventListener('change', () => {
+        // focus caption so user can type, then auto-submit after small delay
+        const caption = document.getElementById('caption');
+        if (caption) caption.focus();
+        if (fileInput.files && fileInput.files.length > 0) {
+          setTimeout(()=> uploadForm.submit(), 250);
+        }
+      });
+    }
+
+    // periodic polling
+    setInterval(fetchNotifications, 20000);
+  });
+</script>
+</body>
+</html>

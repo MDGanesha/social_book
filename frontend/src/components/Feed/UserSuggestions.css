@@ -1,0 +1,64 @@
+.suggestions-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions-card h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.suggestion-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.suggestion-user:hover {
+  opacity: 0.7;
+}
+
+.suggestion-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.suggestion-username {
+  font-weight: 500;
+  color: #333;
+}
+
+.follow-btn {
+  padding: 6px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.follow-btn:hover {
+  background: #5568d3;
+}
+
